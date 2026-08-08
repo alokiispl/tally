@@ -1,0 +1,37 @@
+name: OpenQuota platform smoke
+description: Starts a packaged OpenQuota build with the native platform smoke harness.
+
+inputs:
+  artifact-root:
+    description: Tauri bundle directory containing the platform's packaged artifacts.
+    required: false
+    default: src-tauri/target/release/bundle
+
+runs:
+  using: composite
+  steps:
+    - name: Install, start, and uninstall the Windows NSIS package
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        OPENQUOTA_SMOKE_ARTIFACT_ROOT: ${{ inputs.artifact-root }}
+      run: >-
+        & "$env:GITHUB_ACTION_PATH/scripts/windows.ps1"
+        -InstallerDirectory "$env:OPENQUOTA_SMOKE_ARTIFACT_ROOT/nsis"
+
+    - name: Smoke test macOS tray startup
+      if: runner.os == 'macOS'
+      shell: bash
+      env:
+        OPENQUOTA_SMOKE_ARTIFACT_ROOT: ${{ inputs.artifact-root }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/macos.sh" "$OPENQUOTA_SMOKE_ARTIFACT_ROOT/dmg"
+
+    - name: Exercise Linux AppImage and Debian packages
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        OPENQUOTA_SMOKE_ARTIFACT_ROOT: ${{ inputs.artifact-root }}
+      run: >-
+        bash "$GITHUB_ACTION_PATH/scripts/linux-packages.sh"
+        "$OPENQUOTA_SMOKE_ARTIFACT_ROOT/appimage"
+        "$OPENQUOTA_SMOKE_ARTIFACT_ROOT/deb"
